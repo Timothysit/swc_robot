@@ -6,7 +6,7 @@ import cv2
 import numpy as np
 import RPi.GPIO as GPIO
 
-# things for color tracking 
+# things for color tracking
 import imutils
 from collections import deque
 
@@ -34,7 +34,7 @@ def test_motor_mode():
 
     robot.right()
     time.sleep(4)
-    
+
 def get_blue_score():
     return None
 
@@ -51,12 +51,12 @@ def destroy():
     GPIO.setup(pin, GPIO.OUT)
     freq = 200 # in Hz (originally 50)
     while True:
-    	wheel = GPIO.PWM(pin, freq)
-	dutyCycle = 1
-    	wheel.start(dutyCycle)
+        wheel = GPIO.PWM(pin, freq)
+        dutyCycle = 1
+        wheel.start(dutyCycle)
         time.sleep(10)
-	print 'Destroy!'
-    
+    print 'Destroy!'
+
 def detect_blue_mode(threshold):
     while(1):
         _, frame = cap.read()
@@ -67,7 +67,7 @@ def detect_blue_mode(threshold):
 
         lower_blue = np.array([72, 61, 139])
         upper_blue = np.array([141, 238, 238])
-         
+
         # mask = cv2.inRange(hsv, lower_red, upper_red)
         mask = cv2.inRange(hsv, lower_blue, upper_blue)
         res = cv2.bitwise_and(frame,frame, mask= mask)
@@ -78,74 +78,74 @@ def detect_blue_mode(threshold):
         if blue_score > threshold:
             print 'Begin hunt mode!'
             hunt_mode()
-'''
+
 def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False):
-	# define lower and upper boundaries of colors in HSV color space
-	lower = {'blue':(97, 100, 117), 'red':(166, 84, 141)}
-	upper = {'blue':(117,255,255), 'red':(186,255,255)}
-	
-	# define standard colors for circle around object (comment out)
-	colors = {'blue':(255,0,0), 'red':(0,0,255)}
-	camera =  cv2.VideoCapture(0)
-	while True:
-		# grab the current frame
-    		(grabbed, frame) = camera.read() 
-		# resize the frame, blur it, and convert it to the HSV
-    		# color space
-    		frame = imutils.resize(frame, width=600)
+    # define lower and upper boundaries of colors in HSV color space
+    lower = {'blue':(97, 100, 117), 'red':(166, 84, 141)}
+    upper = {'blue':(117,255,255), 'red':(186,255,255)}
 
-		blurred = cv2.GaussianBlur(frame, (11, 11), 0)
-	    	hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
-	    #for each color in dictionary check object in frame
-	    	for key, value in upper.items():
-	        # construct a mask for the color from dictionary`1, then perform
-	        # a series of dilations and erosions to remove any small
-	        # blobs left in the mask
-	        	kernel = np.ones((9,9),np.uint8)
-	        	mask = cv2.inRange(hsv, lower[key], upper[key])
-	        	mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-	        	mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
-	                
-	        # find contours in the mask and initialize the current
-	        # (x, y) center of the ball
-	        	cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
-	            cv2.CHAIN_APPROX_SIMPLE)[-2]
-	        	center = None
+    # define standard colors for circle around object (comment out)
+    colors = {'blue':(255,0,0), 'red':(0,0,255)}
+    camera =  cv2.VideoCapture(0)
+    while True:
+        # grab the current frame
+        (grabbed, frame) = camera.read()
+        # resize the frame, blur it, and convert it to the HSV
+        # color space
+        frame = imutils.resize(frame, width=600)
+        blurred = cv2.GaussianBlur(frame, (11, 11), 0)
+        hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+        #for each color in dictionary check object in frame
+        for key, value in upper.items():
+            # construct a mask for the color from dictionary`1, then perform
+            # a series of dilations and erosions to remove any small
+            # blobs left in the mask
+            kernel = np.ones((9,9),np.uint8)
+            mask = cv2.inRange(hsv, lower[key], upper[key])
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
-	        if showImage == True:
-		        # only proceed if at least one contour was found
-		        if len(cnts) > 0:
-		            # find the largest contour in the mask, then use
-		            # it to compute the minimum enclosing circle and
-		            # centroid
-		            c = max(cnts, key=cv2.contourArea)
-		            ((x, y), radius) = cv2.minEnclosingCircle(c)
-		            M = cv2.moments(c)
-		            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-		        
-		            # only proceed if the radius meets a minimum size. Correct this value for your obect's size
-		            if radius > 0.5:
-		                # draw the circle and centroid on the frame,
-		                # then update the list of tracked points
-		                cv2.circle(frame, (int(x), int(y)), int(radius), colors[key], 2)
-		                cv2.putText(frame,key + " ball", (int(x-radius),int(y-radius)), cv2.FONT_HERSHEY_SIMPLEX, 0.6,colors[key],2)
-		
+            # find contours in the mask and initialize the current
+            # (x, y) center of the ball
+            cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+            cv2.CHAIN_APPROX_SIMPLE)[-2]
+            center = None
 
-	    # show the frame to our screen
-	    if showImage == True:
-    		cv2.imshow("Frame", frame)
+            if showImage == True:
+                # only proceed if at least one contour was found
+                if len(cnts) > 0:
+                    # find the largest contour in the mask, then use
+                    # it to compute the minimum enclosing circle and
+                    # centroid
+                    c = max(cnts, key=cv2.contourArea)
+                    ((x, y), radius) = cv2.minEnclosingCircle(c)
+                    M = cv2.moments(c)
+                    center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
 
-    	# activate hunt mode if there is more than one circle
-    	if huntMode == True and len(cnts > 0):
-    		print 'Begin hunt mode!'
+                    # only proceed if the radius meets a minimum size. Correct this value for your obect's size
+                    if radius > 0.5:
+                        # draw the circle and centroid on the frame,
+                        # then update the list of tracked points
+                        cv2.circle(frame, (int(x), int(y)), int(radius), colors[key], 2)
+                        cv2.putText(frame,key + " ball", (int(x-radius),int(y-radius)), cv2.FONT_HERSHEY_SIMPLEX, 0.6,colors[key],2)
+
+
+        # show the frame to our screen
+        if showImage == True:
+            cv2.imshow("Frame", frame)
+
+        # activate hunt mode if there is more than one circle
+        if huntMode == True and len(cnts > 0):
+            print 'Begin hunt mode!'
             hunt_mode()
 
-    
-    	key = cv2.waitKey(1) & 0xFF
-    	# if the 'q' key is pressed, stop the loop
-    	if key == ord("q"):
-        	break
-'''
+
+        key = cv2.waitKey(1) & 0xFF
+        # if the 'q' key is pressed, stop the loop
+        if key == ord("q"):
+            break
+
+
 
 threshold = 10
 # detect_blue_mode(threshold)
