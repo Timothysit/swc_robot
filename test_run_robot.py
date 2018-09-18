@@ -46,10 +46,16 @@ def hunt_mode():
     # time.sleep(2)
 
 def destroy():
-    GPIO.setmode(GPIO.BOARD)
-    GPIO.setup(25, GPIO.OUT)
-    wheel = GPIO.PWM(25, 50)
-    wheel.start(7.5)
+    GPIO.setmode(GPIO.BCM)
+    pin = 25
+    GPIO.setup(pin, GPIO.OUT)
+    freq = 200 # in Hz (originally 50)
+    while True:
+    	wheel = GPIO.PWM(pin, freq)
+	dutyCycle = 1
+    	wheel.start(dutyCycle)
+        time.sleep(10)
+	print 'Destroy!'
     
 def detect_blue_mode(threshold):
     while(1):
@@ -72,8 +78,8 @@ def detect_blue_mode(threshold):
         if blue_score > threshold:
             print 'Begin hunt mode!'
             hunt_mode()
-
-def detect_blue_circle(numCircleThreshold = 1, showImage = True, ,huntMode = False):
+'''
+def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False):
 	# define lower and upper boundaries of colors in HSV color space
 	lower = {'blue':(97, 100, 117), 'red':(166, 84, 141)}
 	upper = {'blue':(117,255,255), 'red':(186,255,255)}
@@ -88,25 +94,25 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, ,huntMode = Fal
     		# color space
     		frame = imutils.resize(frame, width=600)
 
-	    blurred = cv2.GaussianBlur(frame, (11, 11), 0)
-	    hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+		blurred = cv2.GaussianBlur(frame, (11, 11), 0)
+	    	hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
 	    #for each color in dictionary check object in frame
-	    for key, value in upper.items():
+	    	for key, value in upper.items():
 	        # construct a mask for the color from dictionary`1, then perform
 	        # a series of dilations and erosions to remove any small
 	        # blobs left in the mask
-	        kernel = np.ones((9,9),np.uint8)
-	        mask = cv2.inRange(hsv, lower[key], upper[key])
-	        mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
-	        mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+	        	kernel = np.ones((9,9),np.uint8)
+	        	mask = cv2.inRange(hsv, lower[key], upper[key])
+	        	mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+	        	mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 	                
 	        # find contours in the mask and initialize the current
 	        # (x, y) center of the ball
-	        cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+	        	cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
 	            cv2.CHAIN_APPROX_SIMPLE)[-2]
-	        center = None
+	        	center = None
 
-	        if showImage = True:
+	        if showImage == True:
 		        # only proceed if at least one contour was found
 		        if len(cnts) > 0:
 		            # find the largest contour in the mask, then use
@@ -126,11 +132,11 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, ,huntMode = Fal
 		
 
 	    # show the frame to our screen
-	    if showImage = True:
+	    if showImage == True:
     		cv2.imshow("Frame", frame)
 
     	# activate hunt mode if there is more than one circle
-    	if huntMode = True and len(cnts > 0):
+    	if huntMode == True and len(cnts > 0):
     		print 'Begin hunt mode!'
             hunt_mode()
 
@@ -139,8 +145,9 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, ,huntMode = Fal
     	# if the 'q' key is pressed, stop the loop
     	if key == ord("q"):
         	break
-   
+'''
+
 threshold = 10
 # detect_blue_mode(threshold)
-detect_blue_circle(numCircleThreshold = 1, showImage = True, ,huntMode = False)
+# detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False)
 destroy()
