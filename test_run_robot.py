@@ -147,9 +147,13 @@ def temp_detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode =
                     if radius > 0.5:
                         # draw the circle and centroid on the frame,
                         # then update the list of tracked points
-                        cv2.circle(frame, (int(x), int(y)), int(radius), colors[key], 2)
+                        cv2.circle(frame, (int(x), int(y)), int(radius), colors[key], 2)        
                         cv2.putText(frame,key + " ball", (int(x-radius),int(y-radius)), cv2.FONT_HERSHEY_SIMPLEX, 0.6,colors[key],2)
-    cam.release()
+        key = cv2.waitKey(1) & 0xFF
+        if key == ord("q"):
+            break
+    camera.release()
+    cv2.destroyAllWindows()
 
 
 def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False):
@@ -253,7 +257,8 @@ threshold = 10
 
 def main():
     explore_mode_counter = 0
-    while True: 
+    while True:
+           # time.sleep(2) 
 	   explore_mode(spinDuration = 0.1, forwardDuration = 0, stopDuration = 0.25)
        	   circleScore = temp_detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False, cameraDuration = 0.5)
 
