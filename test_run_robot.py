@@ -127,13 +127,13 @@ def temp_detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode =
             cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
             cv2.CHAIN_APPROX_SIMPLE)[-2]
             center = None
-        numCircle = len(cnts)
+            numCircle = len(cnts)
             if showImage == True:
                 # only proceed if at least one contour was found
                 if len(cnts) > 0:
                     numCircle = len(cnts)
                     return(numCircle)
-            # print 'Circle score:'   
+            # print 'Circle score:'
             #     print len(cnts)
                     # find the largest contour in the mask, then use
                     # it to compute the minimum enclosing circle and
@@ -162,7 +162,7 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = Fals
     camera =  cv2.VideoCapture(0)
     while True:
 	# count for the number of circles 
-	    numCircle = 0
+	numCircle = 0
         # grab the current frame
         (grabbed, frame) = camera.read()
         # resize the frame, blur it, and convert it to the HSV
@@ -255,22 +255,22 @@ def main():
     explore_mode_counter = 0
     while True: 
 	   explore_mode(spinDuration = 0.1, forwardDuration = 0, stopDuration = 0.25)
-       circleScore = temp_detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False, cameraDuration = 0.5)
+       	   circleScore = temp_detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False, cameraDuration = 0.5)
 
-       # check if the robot is stuck
-       stuckScore = checkStuck()
-       if stuckScore > 0:
-            print 'Panic!'
-            panic_mode()
+           # check if the robot is stuck
+           stuckScore = check_stuck()
+           if stuckScore > 0:
+            	print 'Panic!'
+            	panic_mode()
 
        # check if the robot detected blue balloon(s)
-       if circleScore > 0:
-            print 'Hunt!'
-            hunt_mode(duration = 0.4)
-       else:
-            explore_mode_counter += 1
-       if explore_mode_counter % 10 == 0
-            explore_mode(spinDuration = 0.1, forwardDuration = 5, stopDuration = 0.25)
+       	   if circleScore > 0:
+            	print 'Hunt!'
+            	hunt_mode(duration = 0.4)
+       	   else:
+            	explore_mode_counter += 1
+       	   if explore_mode_counter % 10 == 0:
+                explore_mode(spinDuration = 0.1, forwardDuration = 5, stopDuration = 0.25)
 
 
 main()
