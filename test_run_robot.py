@@ -149,7 +149,7 @@ def temp_detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode =
                         # then update the list of tracked points
                         cv2.circle(frame, (int(x), int(y)), int(radius), colors[key], 2)
                         cv2.putText(frame,key + " ball", (int(x-radius),int(y-radius)), cv2.FONT_HERSHEY_SIMPLEX, 0.6,colors[key],2)
-
+    cam.release()
 
 
 def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False):
