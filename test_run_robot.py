@@ -10,7 +10,7 @@ import RPi.GPIO as GPIO
 import imutils
 from collections import deque
 
-cap = cv2.VideoCapture(0)
+# cap = cv2.VideoCapture(0)
 
 
 robot = CamJamKitRobot()
@@ -35,26 +35,37 @@ def test_motor_mode():
     robot.right()
     time.sleep(4)
 
-def get_blue_score():
+def explore_mode():
+    # spinDuration = np.random.uniform(1, 2)
+    spinDuration = 2
+    print spinDuration 
+    robot.left()
+    time.sleep(spinDuration)
+    forwardDuration = np.random.uniform(2, 5)
+    print forwardDuration
+    time.sleep(forwardDuration)
+
+def stuck_mode():
     return None
 
-def hunt_mode():
+def hunt_mode(duration = 0.4):
     print 'Hunt mode activated'
     robot.forward()
-    time.sleep(0.1)
+    destroy(duration)
+    time.sleep(duration)
     robot.stop()
-    # time.sleep(2)
 
-def destroy():
+def destroy(duration = 0.5):
     GPIO.setmode(GPIO.BCM)
     pin = 25
     GPIO.setup(pin, GPIO.OUT)
     freq = 200 # in Hz (originally 50)
-    while True:
-        wheel = GPIO.PWM(pin, freq)
-        dutyCycle = 1
-        wheel.start(dutyCycle)
-        time.sleep(10)
+
+    # while True:
+    wheel = GPIO.PWM(pin, freq)
+    dutyCycle = 1
+    wheel.start(dutyCycle)
+    time.sleep(duration)
     print 'Destroy!'
 
 def detect_blue_mode(threshold):
@@ -88,11 +99,13 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = Fals
     colors = {'blue':(255,0,0), 'red':(0,0,255)}
     camera =  cv2.VideoCapture(0)
     while True:
+	# count for the number of circles 
+	numCircle = 0
         # grab the current frame
         (grabbed, frame) = camera.read()
         # resize the frame, blur it, and convert it to the HSV
         # color space
-        frame = imutils.resize(frame, width=600)
+        frame = imutils.resize(frame, width=200) # 600 by default
         blurred = cv2.GaussianBlur(frame, (11, 11), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
         #for each color in dictionary check object in frame
@@ -110,10 +123,11 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = Fals
             cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
             cv2.CHAIN_APPROX_SIMPLE)[-2]
             center = None
-
+	    numCircle = len(cnts)
             if showImage == True:
                 # only proceed if at least one contour was found
                 if len(cnts) > 0:
+	            print len(cnts)
                     # find the largest contour in the mask, then use
                     # it to compute the minimum enclosing circle and
                     # centroid
@@ -128,16 +142,21 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = Fals
                         # then update the list of tracked points
                         cv2.circle(frame, (int(x), int(y)), int(radius), colors[key], 2)
                         cv2.putText(frame,key + " ball", (int(x-radius),int(y-radius)), cv2.FONT_HERSHEY_SIMPLEX, 0.6,colors[key],2)
+			# print 'Nothing happening here'
+		    if huntMode == True:
+			print 'Begin hunt mode!'
+			hunt_mode()
 
 
         # show the frame to our screen
-        if showImage == True:
-            cv2.imshow("Frame", frame)
-
+        # if showImage == True:
+        #    cv2.imshow("Frame", frame)
+	
+	# print len(cnts)
         # activate hunt mode if there is more than one circle
-        if huntMode == True and len(cnts > 0):
-            print 'Begin hunt mode!'
-            hunt_mode()
+        #if huntMode == True and numCircle > 0:
+        #    print 'Begin hunt mode!'
+        #    hunt_mode()
 
 
         key = cv2.waitKey(1) & 0xFF
@@ -149,5 +168,8 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = Fals
 
 threshold = 10
 # detect_blue_mode(threshold)
-# detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False)
-destroy()
+# detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = True)
+# destroy()
+
+detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = True)
+explore_mode()
