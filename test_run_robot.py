@@ -73,7 +73,7 @@ def detect_blue_mode(threshold):
             print 'Begin hunt mode!'
             hunt_mode()
 
-def detect_blue_circle():
+def detect_blue_circle(numCircleThreshold = 1, showImage = True, ,huntMode = False):
 	# define lower and upper boundaries of colors in HSV color space
 	lower = {'blue':(97, 100, 117), 'red':(166, 84, 141)}
 	upper = {'blue':(117,255,255), 'red':(186,255,255)}
@@ -105,33 +105,42 @@ def detect_blue_circle():
 	        cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
 	            cv2.CHAIN_APPROX_SIMPLE)[-2]
 	        center = None
-	        
-	        # only proceed if at least one contour was found
-	        if len(cnts) > 0:
-	            # find the largest contour in the mask, then use
-	            # it to compute the minimum enclosing circle and
-	            # centroid
-	            c = max(cnts, key=cv2.contourArea)
-	            ((x, y), radius) = cv2.minEnclosingCircle(c)
-	            M = cv2.moments(c)
-	            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
-	        
-	            # only proceed if the radius meets a minimum size. Correct this value for your obect's size
-	            if radius > 0.5:
-	                # draw the circle and centroid on the frame,
-	                # then update the list of tracked points
-	                cv2.circle(frame, (int(x), int(y)), int(radius), colors[key], 2)
-	                cv2.putText(frame,key + " ball", (int(x-radius),int(y-radius)), cv2.FONT_HERSHEY_SIMPLEX, 0.6,colors[key],2)
-	
-	     
+
+	        if showImage = True:
+		        # only proceed if at least one contour was found
+		        if len(cnts) > 0:
+		            # find the largest contour in the mask, then use
+		            # it to compute the minimum enclosing circle and
+		            # centroid
+		            c = max(cnts, key=cv2.contourArea)
+		            ((x, y), radius) = cv2.minEnclosingCircle(c)
+		            M = cv2.moments(c)
+		            center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+		        
+		            # only proceed if the radius meets a minimum size. Correct this value for your obect's size
+		            if radius > 0.5:
+		                # draw the circle and centroid on the frame,
+		                # then update the list of tracked points
+		                cv2.circle(frame, (int(x), int(y)), int(radius), colors[key], 2)
+		                cv2.putText(frame,key + " ball", (int(x-radius),int(y-radius)), cv2.FONT_HERSHEY_SIMPLEX, 0.6,colors[key],2)
+		
+
 	    # show the frame to our screen
-    	cv2.imshow("Frame", frame)
+	    if showImage = True:
+    		cv2.imshow("Frame", frame)
+
+    	# activate hunt mode if there is more than one circle
+    	if huntMode = True and len(cnts > 0):
+    		print 'Begin hunt mode!'
+            hunt_mode()
+
     
-    key = cv2.waitKey(1) & 0xFF
-    # if the 'q' key is pressed, stop the loop
-    if key == ord("q"):
-        break
+    	key = cv2.waitKey(1) & 0xFF
+    	# if the 'q' key is pressed, stop the loop
+    	if key == ord("q"):
+        	break
    
 threshold = 10
 # detect_blue_mode(threshold)
+detect_blue_circle(numCircleThreshold = 1, showImage = True, ,huntMode = False)
 destroy()
