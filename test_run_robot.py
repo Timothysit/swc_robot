@@ -35,7 +35,7 @@ def test_motor_mode():
     robot.right()
     time.sleep(4)
 
-def explore_mode(spinDuration = 0.1, forwardDuration = 0.1, stopDuration = 0.25):
+def explore_mode(spinDuration = 0.1, forwardDuration = 0, stopDuration = 0.25):
     # spinDuration = np.random.uniform(1, 2)
     print 'Explore mode...'
     spinDuration = 0.1
@@ -45,9 +45,11 @@ def explore_mode(spinDuration = 0.1, forwardDuration = 0.1, stopDuration = 0.25)
 
     robot.stop()
     time.sleep(stopDuration)
-    #forwardDuration = np.random.uniform(2, 5)
+    # forwardDuration = np.random.uniform(2, 5)
     # print forwardDuration
-    # time.sleep(forwardDuration)
+    if forwardDuration > 0:
+        robot.forward()
+        time.sleep(forwardDuration)
 
 def stuck_mode():
     return None
@@ -95,8 +97,58 @@ def detect_blue_mode(threshold):
             hunt_mode()
 
 
-def temp_detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False):
-    return None
+def temp_detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False, cameraDuration = 0.5):
+    lower = {'blue':(97, 100, 117), 'red':(166, 84, 141)}
+    upper = {'blue':(117,255,255), 'red':(186,255,255)}
+    colors = {'blue':(255,0,0), 'red':(0,0,255)}
+    camera =  cv2.VideoCapture(0)
+    timeout = time.time() + cameraDuration
+    while time.time() < timeout:
+        numCircle = 0
+        # grab the current frame
+        (grabbed, frame) = camera.read()
+        # resize the frame, blur it, and convert it to the HSV
+        # color space
+        frame = imutils.resize(frame, width=200) # 600 by default
+        blurred = cv2.GaussianBlur(frame, (11, 11), 0)
+        hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+        #for each color in dictionary check object in frame
+        for key, value in upper.items():
+            # construct a mask for the color from dictionary`1, then perform
+            # a series of dilations and erosions to remove any small
+            # blobs left in the mask
+            kernel = np.ones((9,9),np.uint8)
+            mask = cv2.inRange(hsv, lower[key], upper[key])
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+
+            # find contours in the mask and initialize the current
+            # (x, y) center of the ball
+            cnts = cv2.findContours(mask.copy(), cv2.RETR_EXTERNAL,
+            cv2.CHAIN_APPROX_SIMPLE)[-2]
+            center = None
+        numCircle = len(cnts)
+            if showImage == True:
+                # only proceed if at least one contour was found
+                if len(cnts) > 0:
+                    numCircle = len(cnts)
+                    return(numCircle)
+            # print 'Circle score:'   
+            #     print len(cnts)
+                    # find the largest contour in the mask, then use
+                    # it to compute the minimum enclosing circle and
+                    # centroid
+                    c = max(cnts, key=cv2.contourArea)
+                    ((x, y), radius) = cv2.minEnclosingCircle(c)
+                    M = cv2.moments(c)
+                    center = (int(M["m10"] / M["m00"]), int(M["m01"] / M["m00"]))
+
+                    # only proceed if the radius meets a minimum size. Correct this value for your obect's size
+                    if radius > 0.5:
+                        # draw the circle and centroid on the frame,
+                        # then update the list of tracked points
+                        cv2.circle(frame, (int(x), int(y)), int(radius), colors[key], 2)
+                        cv2.putText(frame,key + " ball", (int(x-radius),int(y-radius)), cv2.FONT_HERSHEY_SIMPLEX, 0.6,colors[key],2)
 
 
 
@@ -110,7 +162,7 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = Fals
     camera =  cv2.VideoCapture(0)
     while True:
 	# count for the number of circles 
-	numCircle = 0
+	    numCircle = 0
         # grab the current frame
         (grabbed, frame) = camera.read()
         # resize the frame, blur it, and convert it to the HSV
@@ -177,6 +229,18 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = Fals
         if key == ord("q"):
             break
 
+def check_stuck():
+    return 0
+
+def panic_mode(backwardDuration = 3):
+    # panic strategy 1
+    robot.backward()
+    time.sleep(backwardDuration)
+
+    # panic strategy 2
+
+
+    # panic strategy 3
 
 
 threshold = 10
@@ -184,11 +248,32 @@ threshold = 10
 # detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = True)
 # destroy()
 
-detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = True)
-explore_mode()
+# detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = True)#
+# explore_mode()
 
 def main():
-	explore_mode()
+    explore_mode_counter = 0
+    while True: 
+	   explore_mode(spinDuration = 0.1, forwardDuration = 0, stopDuration = 0.25)
+       circleScore = temp_detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False, cameraDuration = 0.5)
+
+       # check if the robot is stuck
+       stuckScore = checkStuck()
+       if stuckScore > 0:
+            print 'Panic!'
+            panic_mode()
+
+       # check if the robot detected blue balloon(s)
+       if circleScore > 0:
+            print 'Hunt!'
+            hunt_mode(duration = 0.4)
+       else:
+            explore_mode_counter += 1
+       if explore_mode_counter % 10 == 0
+            explore_mode(spinDuration = 0.1, forwardDuration = 5, stopDuration = 0.25)
+
+
+main()
 	
 
 
