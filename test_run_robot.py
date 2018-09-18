@@ -35,15 +35,19 @@ def test_motor_mode():
     robot.right()
     time.sleep(4)
 
-def explore_mode():
+def explore_mode(spinDuration = 0.1, forwardDuration = 0.1, stopDuration = 0.25):
     # spinDuration = np.random.uniform(1, 2)
-    spinDuration = 2
+    print 'Explore mode...'
+    spinDuration = 0.1
     print spinDuration 
     robot.left()
     time.sleep(spinDuration)
-    forwardDuration = np.random.uniform(2, 5)
-    print forwardDuration
-    time.sleep(forwardDuration)
+
+    robot.stop()
+    time.sleep(stopDuration)
+    #forwardDuration = np.random.uniform(2, 5)
+    # print forwardDuration
+    # time.sleep(forwardDuration)
 
 def stuck_mode():
     return None
@@ -90,6 +94,12 @@ def detect_blue_mode(threshold):
             print 'Begin hunt mode!'
             hunt_mode()
 
+
+def temp_detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False):
+    return None
+
+
+
 def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = False):
     # define lower and upper boundaries of colors in HSV color space
     lower = {'blue':(97, 100, 117), 'red':(166, 84, 141)}
@@ -127,6 +137,7 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = Fals
             if showImage == True:
                 # only proceed if at least one contour was found
                 if len(cnts) > 0:
+		    print 'Circle score:'	
 	            print len(cnts)
                     # find the largest contour in the mask, then use
                     # it to compute the minimum enclosing circle and
@@ -146,6 +157,8 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = Fals
 		    if huntMode == True:
 			print 'Begin hunt mode!'
 			hunt_mode()
+		else:
+			explore_mode()
 
 
         # show the frame to our screen
@@ -173,3 +186,13 @@ threshold = 10
 
 detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = True)
 explore_mode()
+
+def main():
+	explore_mode()
+	
+
+
+
+
+
+
