@@ -263,8 +263,14 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = Fals
         if key == ord("q"):
             break
 
-def check_stuck():
-    return 0
+def check_stuck(prevFrame, currFrame, stuckThreshold = 100):
+    frameDifference = cv2.subtract(prevFrame, currFrame)
+    if  frameDifference < stuckThreshold:
+        stuckScore = 1
+        print 'Robot is stuck.'
+    else:
+        stuckScore = 0
+    return stuckScore
 
 def panic_mode(backwardDuration = 3):
     # panic strategy 1
@@ -295,14 +301,18 @@ def main():
     explore_mode_counter = 0
     while True:
         # time.sleep(2) 
-	print 'Start explore mode'
+        # first frame to see if the robot is stuck
+        (grabbed, prevFrame) = camera.read()
+	    print 'Start explore mode'
         explore_mode(robot = robot, spinDuration = 2, forwardDuration = 0, stopDuration = 0.25)
         print 'Looking for circles...'
+        # take a photo to check for stucking
         circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, 
 	showImage = True, cameraDuration = 3, snapImage = False)
         print 'Circle score: %.2f' % circleScore
-        # check if the robot is stuck
-        stuckScore = check_stuck()
+        # second frame to compare if the robot is stuck
+        (grabbed, currFrame) = camera.read()
+        stuckScore = check_stuck(prevFrame, currFrame)
         if stuckScore > 0:
             print 'Panic!'
             panic_mode()
