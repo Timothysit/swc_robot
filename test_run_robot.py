@@ -53,11 +53,11 @@ def explore_mode(robot, spinDuration = 0.1, forwardDuration = 0, stopDuration = 
 def stuck_mode():
     return None
 
-def hunt_mode(robot, duration = 0.4):
+def hunt_mode(robot, duration = 0.4, deathWheelDuration = 3):
     print 'Hunt mode activated'
     robot.forward()
-    destroy(duration)
-    time.sleep(duration)
+    destroy(deathWheelDuration)
+   #time.sleep(duration)
     robot.stop()
     # TODO: check if balloon is destroyed, if yes, exit hunt mode
 
@@ -98,19 +98,22 @@ def detect_blue_mode(threshold):
             print 'Begin hunt mode!'
             hunt_mode()
 
+def detect_circle(camera):
+    circles = cv2.HoughCircles(img, cv2.cv.CV_HOUGH_GRADIENT, 1.2, 100)
 
 def temp_detect_blue_circle(camera, numCircleThreshold = 1, showImage = True, cameraDuration = 0.5, cameraWait = 0, snapImage = True):
     '''
     Detects blue circles and returns the number of blue circles detected
     INPUT 
     camera             | camera object (opencv)
-    numCircleThreshold | 
+    numCircleThreshold | obsolete (please remove)
     showImage          | whether to show the video stream on screen (for testing/debugging)
     huntMode           | whether to allow activation of huntmode if numCircle > numCircleThreshold 
     cameraDuration     | how long to allow the camera to run before returning
     '''
     if cameraWait > 0: 
         time.sleep(cameraWait)
+    # TODO: check if these are in RGB or HSV
     lower = {'blue':(97, 100, 117), 'red':(166, 84, 141)}
     upper = {'blue':(117,255,255), 'red':(186,255,255)}
     colors = {'blue':(255,0,0), 'red':(0,0,255)}
@@ -141,7 +144,10 @@ def temp_detect_blue_circle(camera, numCircleThreshold = 1, showImage = True, ca
             # blobs left in the mask
             kernel = np.ones((9,9),np.uint8)
             mask = cv2.inRange(hsv, lower[key], upper[key])
+            # erosion, then dilation, useful for removing noise
             mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+            # dilaton, then erosion, useful for closing small holes inside foreground object,
+            # or small black points on the object
             mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
 
             # find contours in the mask and initialize the current
@@ -263,8 +269,10 @@ def detect_blue_circle(numCircleThreshold = 1, showImage = True, huntMode = Fals
         if key == ord("q"):
             break
 
-def check_stuck(prevFrame, currFrame, stuckThreshold = 100):
+def check_stuck(prevFrame, currFrame, stuckThreshold = 2000000):
     frameDifference = cv2.subtract(prevFrame, currFrame)
+    frameDifference = np.sum(np.sum(frameDifference))
+    print 'Frame difference %.2f' % frameDifference
     if  frameDifference < stuckThreshold:
         stuckScore = 1
         print 'Robot is stuck.'
@@ -272,7 +280,7 @@ def check_stuck(prevFrame, currFrame, stuckThreshold = 100):
         stuckScore = 0
     return stuckScore
 
-def panic_mode(backwardDuration = 3):
+def panic_mode(robot, backwardDuration = 3):
     # panic strategy 1
     robot.backward()
     time.sleep(backwardDuration)
@@ -303,8 +311,8 @@ def main():
         # time.sleep(2) 
         # first frame to see if the robot is stuck
         (grabbed, prevFrame) = camera.read()
-	    print 'Start explore mode'
-        explore_mode(robot = robot, spinDuration = 2, forwardDuration = 0, stopDuration = 0.25)
+	print 'Start explore mode'
+        explore_mode(robot = robot, spinDuration = 0.5, forwardDuration = 0, stopDuration = 0.25)
         print 'Looking for circles...'
         # take a photo to check for stucking
         circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, 
@@ -312,17 +320,18 @@ def main():
         print 'Circle score: %.2f' % circleScore
         # second frame to compare if the robot is stuck
         (grabbed, currFrame) = camera.read()
-        stuckScore = check_stuck(prevFrame, currFrame)
+        stuckScore = check_stuck(prevFrame, currFrame, stuckThreshold = 2000000)
         if stuckScore > 0:
             print 'Panic!'
-            panic_mode()
+            panic_mode(robot, backwardDuration = 3)
 
        # check if the robot detected blue balloon(s)
         numCircleThreshold = 0.5
         if circleScore > numCircleThreshold:
             print 'Hunt!'
-            hunt_mode(robot, duration = 0.4)
-            explore_mode_counter = 0 
+            hunt_mode(robot, duration = 1, deathWheelDuration = 3)
+            explore_mode_counter = 0
+            time.sleep(3) # stop after hunting just for debugging
         else:
             explore_mode_counter += 1
             if explore_mode_counter % 10 == 0:
@@ -344,5 +353,7 @@ def test_robot(run_inf = True):
         print 'Circle score %.2f' % circleScore
     camera.release()
 
+
+        
 test_robot(run_inf = True)
 
