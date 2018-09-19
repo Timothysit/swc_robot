@@ -101,6 +101,43 @@ def detect_blue_mode(threshold):
 def detect_circle(camera):
     circles = cv2.HoughCircles(img, cv2.cv.CV_HOUGH_GRADIENT, 1.2, 100)
 
+def convex_contour_detect(camera, showImage = True, cameraDuration = 0.5): 
+    '''
+    Potential improvement to temp_detect_blue_circle
+    This find contours (after colour filtering), then only accepts those that are convex
+    Convexity should help to include circles/ecclipses whilst excluding rectangles
+    Unit code in approxPolyDpCircleFind.py
+    '''
+    timeout = time.time() + cameraDuration
+    lower_blue = np.array([97, 100, 117])
+    upper_blue = np.array([117,255,255])
+    frameCount = 0 # count the number of frames during camera on (used for scaling)
+    numCircle = 0
+    while time.time() < timeout:
+        frameCount += 1
+        (grabbed, frame) = camera.read()
+        # TODO: insert colour filtering somwhere here
+        bilateral_filtered_image = cv2.bilateralFilter(frame, 5, 175, 175)
+        edge_detected_image = cv2.Canny(bilateral_filtered_image, 75, 200)
+        _, contours, hierarchy = cv2.findContours(edge_detected_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contour_list = []
+        for contour in contours:
+            approx = cv2.approxPolyDP(contour,0.01*cv2.arcLength(contour,True),True)
+            area = cv2.contourArea(contour)
+            circleMinVertex = 8 # if more than this many vertices, treat as circle
+            circleMaxVertex = 23
+            if ((len(approx) > circleMinVertex) & (len(approx) < circleMaxVertex) & (area > 30)
+            & cv2.isContourConvex(approx)):
+                contour_list.append(contour)
+
+        if showImage == True:
+            cv2.drawContours(raw_image, contour_list,  -1, (255,0,0), 2)
+            cv2.imshow('Objects Detected',raw_image)
+        if cv2.waitKey(1) == 1048689: #if q is pressed
+            break
+
+        # TODO: add contour_list len to circleScore, then return average
+
 def temp_detect_blue_circle(camera, numCircleThreshold = 1, showImage = True, cameraDuration = 0.5, cameraWait = 0, snapImage = True):
     '''
     Detects blue circles and returns the number of blue circles detected
