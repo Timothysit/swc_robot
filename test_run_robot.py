@@ -1,10 +1,10 @@
 # test to get robot to run on raspbery pi startup
 from __future__ import division
 import time
-# from gpiozero import CamJamKitRobot
+from gpiozero import CamJamKitRobot
 import cv2
 import numpy as np
-# import RPi.GPIO as GPIO
+import RPi.GPIO as GPIO
 
 # things for color tracking
 import imutils
@@ -16,6 +16,7 @@ def initialise_robot():
 
 def initialise_camera():
     camera =  cv2.VideoCapture(0)
+    assert camera.isOpened(), 'Camera is not open.'
     return camera
 
 def test_motor_mode():
@@ -32,11 +33,11 @@ def test_motor_mode():
     time.sleep(4)
 
 # the 'default' mode, in which the robot goes and look for ballons
-def explore_mode(spinDuration = 0.1, forwardDuration = 0, stopDuration = 0.25):
+def explore_mode(robot, spinDuration = 0.1, forwardDuration = 0, stopDuration = 0.25):
     # spinDuration = np.random.uniform(1, 2)
-    print 'Explore mode...'
-    spinDuration = 0.1
-    print spinDuration 
+    #print 'Explore mode...'
+    # spinDuration = 0.1
+    #print spinDuration 
     robot.left()
     time.sleep(spinDuration)
 
@@ -52,12 +53,13 @@ def explore_mode(spinDuration = 0.1, forwardDuration = 0, stopDuration = 0.25):
 def stuck_mode():
     return None
 
-def hunt_mode(duration = 0.4):
+def hunt_mode(robot, duration = 0.4):
     print 'Hunt mode activated'
     robot.forward()
     destroy(duration)
     time.sleep(duration)
     robot.stop()
+    # TODO: check if balloon is destroyed, if yes, exit hunt mode
 
 # mode for destroying robots
 def destroy(duration = 0.5):
@@ -116,7 +118,9 @@ def temp_detect_blue_circle(camera, numCircleThreshold = 1, showImage = True, ca
     timeout = time.time() + cameraDuration
     # now = time.time()
     numCircleSum = 0 # for summing number of circles over a number of frames
+    frameCount = 0 # count the number of frames during camera on (used for scaling)
     while time.time() < timeout:
+        frameCount += 1
         # now = time.time()
         # set default number of circles to 0
         numCircle = 0 # for summing number of circles in a single frame
@@ -124,9 +128,12 @@ def temp_detect_blue_circle(camera, numCircleThreshold = 1, showImage = True, ca
         (grabbed, frame) = camera.read()
         # resize the frame, blur it, and convert it to the HSV
         # color space
-        frame = imutils.resize(frame, width=200) # 600 by default
+        frame = imutils.resize(frame, width=600) # 600 by default
         blurred = cv2.GaussianBlur(frame, (11, 11), 0)
         hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+
+	# skip blurring procedure
+        # hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
         #for each color in dictionary check object in frame
         for key, value in upper.items():
             # construct a mask for the color from dictionary`1, then perform
@@ -173,7 +180,7 @@ def temp_detect_blue_circle(camera, numCircleThreshold = 1, showImage = True, ca
         if snapImage == True:
             return numCircle
     # if not snapImage, the sum will be returned once the while loop is over
-    return numCircleSum
+    return numCircleSum / frameCount
 
     # camera.release()
     # cv2.destroyAllWindows()
@@ -281,16 +288,19 @@ threshold = 10
 # main function to run on robot startup
 def main():
     # set up robot 
-    # robot = initialise_robot()
+    robot = initialise_robot()
     # set up camera
     camera = initialise_camera()
     # keep count of how many explores we have done so we can move forwards after certain amount of 'explores'
     explore_mode_counter = 0
     while True:
         # time.sleep(2) 
-        # explore_mode(spinDuration = 0.1, forwardDuration = 0, stopDuration = 0.25)
-        circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, showImage = True, huntMode = False, cameraDuration = 0.5)
-
+	print 'Start explore mode'
+        explore_mode(robot = robot, spinDuration = 2, forwardDuration = 0, stopDuration = 0.25)
+        print 'Looking for circles...'
+        circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, 
+	showImage = True, cameraDuration = 3, snapImage = False)
+        print 'Circle score: %.2f' % circleScore
         # check if the robot is stuck
         stuckScore = check_stuck()
         if stuckScore > 0:
@@ -298,15 +308,16 @@ def main():
             panic_mode()
 
        # check if the robot detected blue balloon(s)
-        numCircleThreshold = 10
+        numCircleThreshold = 0.5
         if circleScore > numCircleThreshold:
             print 'Hunt!'
-            hunt_mode(duration = 0.4)
+            hunt_mode(robot, duration = 0.4)
+            explore_mode_counter = 0 
         else:
             explore_mode_counter += 1
             if explore_mode_counter % 10 == 0:
-                explore_mode(spinDuration = 0.1, forwardDuration = 5, stopDuration = 0.25)
-
+                explore_mode(robot = robot, spinDuration = 2, forwardDuration = 5, stopDuration = 0.25)
+    camera.release()
 
 # main()
     
@@ -319,8 +330,9 @@ def test_robot(run_inf = True):
             circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, showImage = True, cameraDuration = 5)
             print 'Circle score %.2f' % circleScore
     else:
-        circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, showImage = True, cameraDuration = 10, snapImage = False)
+        circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, showImage = True, cameraDuration = 15, snapImage = False)
         print 'Circle score %.2f' % circleScore
+    camera.release()
 
-test_robot(run_inf = False)
+test_robot(run_inf = True)
 
