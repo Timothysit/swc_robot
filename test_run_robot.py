@@ -128,6 +128,7 @@ def convex_contour_detect(camera, showImage = False, cameraDuration = 0.5):
     upper_blue = np.array([117,255,255])
     frameCount = 0 # count the number of frames during camera on (used for scaling)
     numCircle = 0
+    percentBlue = 0 # initiate this so we can accumulate it over the multiple frames
     while time.time() < timeout:
         frameCount += 1
         (grabbed, frame) = camera.read()
@@ -166,7 +167,10 @@ def convex_contour_detect(camera, showImage = False, cameraDuration = 0.5):
         numCircle = numCircle + len(contour_list)
         
         isBlue = np.count_nonzero(mask) # count the number of pixels that are blue
-        percentBlue = np.sum(isBlue) / (frame.size / 3) # percentage of the screen that is blue
+        # percentBlue = np.sum(isBlue) / (frame.size / 3) # percentage of the screen that is blue
+
+        # accumulates percentBlue instead so we can get an average 
+        percentBlue += np.sum(isBlue) / (frame.size / 3)
 
         if showImage == True:
             cv2.imshow('Filtered image', mask)
@@ -174,7 +178,7 @@ def convex_contour_detect(camera, showImage = False, cameraDuration = 0.5):
             cv2.imshow('Objects Detected',frame)
         if cv2.waitKey(1) == 1048689: #if q is pressed
             break
-    return numCircle, percentBlue
+    return numCircle, (percentBlue/frameCount)
 
         # TODO: add contour_list len to circleScore, then return average
 
@@ -421,7 +425,7 @@ def main():
                 explore_mode(robot = robot, spinDuration = randSpinDuration, forwardDuration = 2, stopDuration = 0.25)
     camera.release()
 
-main()
+# main()
     
 
 
@@ -440,5 +444,5 @@ def test_robot(run_inf = True):
 
 
         
-# test_robot(run_inf = True)
+test_robot(run_inf = True)
 
