@@ -74,6 +74,11 @@ def hunt_mode(robot, duration = 0.4, deathWheelDuration = 3):
     robot.stop()
     # TODO: check if balloon is destroyed, if yes, exit hunt mode
 
+def track_mode(robot, camera):
+    # while blue centroid still in frame 
+    # compute centre of centroid 
+    # adjust wheel to go left if the centroid is slightly right
+
 
 # mode for destroying robots
 def destroy(duration = 0.5):
