@@ -61,6 +61,7 @@ def hunt_mode(robot, duration = 0.4, deathWheelDuration = 3):
     robot.stop()
     # TODO: check if balloon is destroyed, if yes, exit hunt mode
 
+
 # mode for destroying robots
 def destroy(duration = 0.5):
     GPIO.setmode(GPIO.BCM)
@@ -101,7 +102,7 @@ def detect_blue_mode(threshold):
 def detect_circle(camera):
     circles = cv2.HoughCircles(img, cv2.cv.CV_HOUGH_GRADIENT, 1.2, 100)
 
-def convex_contour_detect(camera, showImage = True, cameraDuration = 0.5): 
+def convex_contour_detect(camera, showImage = False, cameraDuration = 0.5): 
     '''
     Potential improvement to temp_detect_blue_circle
     This find contours (after colour filtering), then only accepts those that are convex
@@ -117,9 +118,24 @@ def convex_contour_detect(camera, showImage = True, cameraDuration = 0.5):
         frameCount += 1
         (grabbed, frame) = camera.read()
         # TODO: insert colour filtering somwhere here
-        bilateral_filtered_image = cv2.bilateralFilter(frame, 5, 175, 175)
-        edge_detected_image = cv2.Canny(bilateral_filtered_image, 75, 200)
-        _, contours, hierarchy = cv2.findContours(edge_detected_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        # bilateral_filtered_image = cv2.bilateralFilter(frame, 5, 175, 175)
+        # edge_detected_image = cv2.Canny(bilateral_filtered_image, 75, 200)
+        blurred = cv2.GaussianBlur(frame, (17, 17), 0) # originally 11, 11, this seem to help, it is currently detecting glare on the balloon 
+        # blurred = frame
+        hsv = cv2.cvtColor(blurred, cv2.COLOR_BGR2HSV)
+        lower_blue = np.array([97, 100, 117])
+        # lower_blue = np.array([39, 23, 102])
+        upper_blue = np.array([117,255,255])
+        mask = cv2.inRange(hsv, lower_blue, upper_blue)
+        # erosion, then dilation, useful for removing noise
+        kernel = np.ones((9,9),np.uint8)
+        # mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, kernel)
+        # dilaton, then erosion, useful for closing small holes inside foreground object,
+        # or small black points on the object
+        # mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
+        # cv2.imshow('mask', mask)
+        # _, contours, hierarchy = cv2.findContours(edge_detected_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contour_list = []
         for contour in contours:
             approx = cv2.approxPolyDP(contour,0.01*cv2.arcLength(contour,True),True)
@@ -129,12 +145,18 @@ def convex_contour_detect(camera, showImage = True, cameraDuration = 0.5):
             if ((len(approx) > circleMinVertex) & (len(approx) < circleMaxVertex) & (area > 30)
             & cv2.isContourConvex(approx)):
                 contour_list.append(contour)
+        numCircle = numCircle + len(contour_list)
+        
+        isBlue = np.count_nonzero(mask) # count the number of pixels that are blue
+        percentBlue = np.sum(isBlue) / (frame.size / 3) # percentage of the screen that is blue
 
         if showImage == True:
-            cv2.drawContours(raw_image, contour_list,  -1, (255,0,0), 2)
-            cv2.imshow('Objects Detected',raw_image)
+            cv2.imshow('Filtered image', mask)
+            cv2.drawContours(frame, contour_list,  -1, (255,0,0), 2)
+            cv2.imshow('Objects Detected',frame)
         if cv2.waitKey(1) == 1048689: #if q is pressed
             break
+    return numCircle, percentBlue
 
         # TODO: add contour_list len to circleScore, then return average
 
@@ -349,11 +371,14 @@ def main():
         # first frame to see if the robot is stuck
         (grabbed, prevFrame) = camera.read()
 	print 'Start explore mode'
-        explore_mode(robot = robot, spinDuration = 0.5, forwardDuration = 0, stopDuration = 0.25)
+        explore_mode(robot = robot, spinDuration = 0.25, forwardDuration = 0, stopDuration = 0.25)
         print 'Looking for circles...'
         # take a photo to check for stucking
-        circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, 
-	showImage = True, cameraDuration = 3, snapImage = False)
+        # method 1: only colour-based detection method
+        # circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, 
+        # showImage = True, cameraDuration = 3, snapImage = False)
+	# method 2: colour and circle-based detection method
+        circleScore, percentBlue = convex_contour_detect(camera, showImage = False, cameraDuration = 3)
         print 'Circle score: %.2f' % circleScore
         # second frame to compare if the robot is stuck
         (grabbed, currFrame) = camera.read()
@@ -363,19 +388,21 @@ def main():
             panic_mode(robot, backwardDuration = 3)
 
        # check if the robot detected blue balloon(s)
-        numCircleThreshold = 0.5
-        if circleScore > numCircleThreshold:
+        # numCircleThreshold = 0.5 # this is for blue-detection 
+        numCircleThreshold = 1 # this is for circle-contour detection / glare
+        percentBlueThreshold = 0.20 # percentage of blue on screen to charge
+        if (circleScore > numCircleThreshold) or percentBlue > percentBlueThreshold:
             print 'Hunt!'
             hunt_mode(robot, duration = 1, deathWheelDuration = 3)
             explore_mode_counter = 0
             time.sleep(3) # stop after hunting just for debugging
         else:
             explore_mode_counter += 1
-            if explore_mode_counter % 10 == 0:
+            if explore_mode_counter % 6 == 0:
                 explore_mode(robot = robot, spinDuration = 2, forwardDuration = 5, stopDuration = 0.25)
     camera.release()
 
-# main()
+main()
     
 
 
@@ -383,8 +410,10 @@ def test_robot(run_inf = True):
     camera =  cv2.VideoCapture(0)
     if run_inf == True:
         while True: 
-            circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, showImage = True, cameraDuration = 5)
+            # circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, showImage = True, cameraDuration = 5)
+            circleScore, percentBlue = convex_contour_detect(camera, showImage = True, cameraDuration = 3)
             print 'Circle score %.2f' % circleScore
+            print 'Percentage of screen blue: %.2f' % percentBlue
     else:
         circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, showImage = True, cameraDuration = 15, snapImage = False)
         print 'Circle score %.2f' % circleScore
@@ -392,5 +421,5 @@ def test_robot(run_inf = True):
 
 
         
-test_robot(run_inf = True)
+# test_robot(run_inf = True)
 
