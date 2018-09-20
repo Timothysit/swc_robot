@@ -51,7 +51,7 @@ def explore_mode(robot, spinDuration = 0.1, forwardDuration = 0, stopDuration = 
     #print 'Explore mode...'
     # spinDuration = 0.1
     #print spinDuration 
-    robot.left()
+    robot.right()
     time.sleep(spinDuration)
 
     robot.stop()
@@ -266,7 +266,7 @@ def temp_detect_blue_circle(camera, numCircleThreshold = 1, showImage = True, ca
                         cv2.circle(frame, (int(x), int(y)), int(radius), colors[key], 2)        
                         cv2.putText(frame,key + " ball", (int(x-radius),int(y-radius)), cv2.FONT_HERSHEY_SIMPLEX, 0.6,colors[key],2)
             # show image
-            cv2.imshow("Frame", frame)
+            # cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
         if key == ord("q"):
             break
@@ -405,8 +405,9 @@ def main():
         print 'Looking for circles...'
         # take a photo to check for stucking
         # method 1: only colour-based detection method
-        # circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, 
-        # showImage = True, cameraDuration = 0.5, snapImage = False) #cameraDuration originally 3
+        circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, 
+        showImage = False, cameraDuration = 1, snapImage = False) #cameraDuration originally 3
+
 	# method 2: colour and circle-based detection method
         circleScore, percentBlue = convex_contour_detect(camera, showImage = False, cameraDuration = 1)
         print 'Circle score: %.2f' % circleScore
@@ -418,10 +419,10 @@ def main():
             panic_mode(robot, backwardDuration = 3)
 
        # check if the robot detected blue balloon(s)
-        # numCircleThreshold = 0.5 # this is for blue-detection 
-        numCircleThreshold = 0 # this is for circle-contour detection / glare
+        numCircleThreshold = 0.5 # this is for blue-detection 
+        # numCircleThreshold = 0 # this is for circle-contour detection / glare
         percentBlueThreshold = 0.05 # percentage of blue on screen to charge
-        if (circleScore > numCircleThreshold) or (percentBlue > percentBlueThreshold):
+        if (circleScore > numCircleThreshold): # or (percentBlue > percentBlueThreshold):
             print 'Hunt!'
             hunt_mode(robot, duration = 1, deathWheelDuration = 3)
             explore_mode_counter = 0
@@ -429,11 +430,11 @@ def main():
 
             # checks whether to continue hunting
             print 'Deciding whether to continue hunting...'
-            circleScore, percentBlue = convex_contour_detect(camera, showImage = False, cameraDuration = 1)
-            print 'Circle score: %.2f' % circleScore
-            if (circleScore > numCircleThreshold) or (percentBlue > percentBlueThreshold):
-                print 'Continue hunting'
-                hunt_mode(robot, duration = 1, deathWheelDuration = 3)
+            # circleScore, percentBlue = convex_contour_detect(camera, showImage = False, cameraDuration = 1)
+            # print 'Circle score: %.2f' % circleScore
+            # if (circleScore > numCircleThreshold) or (percentBlue > percentBlueThreshold):
+            #    print 'Continue hunting'
+            #    hunt_mode(robot, duration = 1, deathWheelDuration = 3)
         else:
             explore_mode_counter += 1
             if explore_mode_counter % 15 == 0: # maximum turns before exploration
@@ -441,7 +442,7 @@ def main():
                 explore_mode(robot = robot, spinDuration = randSpinDuration, forwardDuration = 1.7, stopDuration = 0.25)
     camera.release()
 
-# main()
+main()
     
 
 
@@ -460,5 +461,5 @@ def test_robot(run_inf = True):
 
 
         
-test_robot(run_inf = True)
+# test_robot(run_inf = True)
 
