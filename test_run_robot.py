@@ -17,7 +17,20 @@ def initialise_robot():
 def initialise_camera():
     camera =  cv2.VideoCapture(0)
     assert camera.isOpened(), 'Camera is not open.'
+    width = camera.get(cv2.cv.CV_CAP_PROP_FRAME_WIDTH)
+    print 'width: %.2f' % width
+    height = camera.get(cv2.cv.CV_CAP_PROP_FRAME_HEIGHT)
+    print 'height: %.2f' % height
     return camera
+
+def get_roi(frame, x_start = 150, x_end = 640-150, y_start = 0, y_end = 480):
+    # (x, y, w, h) = cv2.boundingRect(frame)
+    # x_start = 0
+    # x_end = 100
+    # y_start = 0
+    # y_end = 100
+    roi = frame[:, x_start:x_end]
+    return roi
 
 def test_motor_mode():
     robot.forward()
@@ -109,6 +122,7 @@ def convex_contour_detect(camera, showImage = False, cameraDuration = 0.5):
     Convexity should help to include circles/ecclipses whilst excluding rectangles
     Unit code in approxPolyDpCircleFind.py
     '''
+
     timeout = time.time() + cameraDuration
     lower_blue = np.array([97, 100, 117])
     upper_blue = np.array([117,255,255])
@@ -117,7 +131,11 @@ def convex_contour_detect(camera, showImage = False, cameraDuration = 0.5):
     while time.time() < timeout:
         frameCount += 1
         (grabbed, frame) = camera.read()
-        # TODO: insert colour filtering somwhere here
+
+        # crop image 
+
+        frame = get_roi(frame)
+
         # bilateral_filtered_image = cv2.bilateralFilter(frame, 5, 175, 175)
         # edge_detected_image = cv2.Canny(bilateral_filtered_image, 75, 200)
         blurred = cv2.GaussianBlur(frame, (17, 17), 0) # originally 11, 11, this seem to help, it is currently detecting glare on the balloon 
@@ -371,7 +389,7 @@ def main():
         # first frame to see if the robot is stuck
         (grabbed, prevFrame) = camera.read()
 	print 'Start explore mode'
-        explore_mode(robot = robot, spinDuration = 0.25, forwardDuration = 0, stopDuration = 0.25)
+        explore_mode(robot = robot, spinDuration = 0.2, forwardDuration = 0, stopDuration = 0.25)
         print 'Looking for circles...'
         # take a photo to check for stucking
         # method 1: only colour-based detection method
@@ -398,8 +416,9 @@ def main():
             time.sleep(3) # stop after hunting just for debugging
         else:
             explore_mode_counter += 1
-            if explore_mode_counter % 6 == 0:
-                explore_mode(robot = robot, spinDuration = 2, forwardDuration = 5, stopDuration = 0.25)
+            if explore_mode_counter % 10 == 0: # maximum turns before exploration
+                randSpinDuration = np.random.uniform(low = 0.2, high = 1)
+                explore_mode(robot = robot, spinDuration = randSpinDuration, forwardDuration = 2, stopDuration = 0.25)
     camera.release()
 
 main()
