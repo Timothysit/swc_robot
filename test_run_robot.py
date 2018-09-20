@@ -23,13 +23,13 @@ def initialise_camera():
     print 'height: %.2f' % height
     return camera
 
-def get_roi(frame, x_start = 150, x_end = 640-150, y_start = 0, y_end = 480):
+def get_roi(frame, x_start = 150, x_end = 640-150, y_start = 0, y_end = 300):
     # (x, y, w, h) = cv2.boundingRect(frame)
     # x_start = 0
     # x_end = 100
     # y_start = 0
-    # y_end = 100
-    roi = frame[y_start:300, x_start:x_end]
+    # y_end = 480 (this should be max_y)
+    roi = frame[y_start:y_end, x_start:x_end]
     return roi
 
 def test_motor_mode():
@@ -218,6 +218,10 @@ def temp_detect_blue_circle(camera, numCircleThreshold = 1, showImage = True, ca
         numCircle = 0 # for summing number of circles in a single frame
         # grab the current frame
         (grabbed, frame) = camera.read()
+
+        # crop frame 
+        frame = get_roi(frame, x_start = 200, x_end = 640-200, y_start = 0, y_end = 300)
+
         # resize the frame, blur it, and convert it to the HSV
         # color space
         frame = imutils.resize(frame, width=600) # 600 by default
@@ -266,7 +270,7 @@ def temp_detect_blue_circle(camera, numCircleThreshold = 1, showImage = True, ca
                         cv2.circle(frame, (int(x), int(y)), int(radius), colors[key], 2)        
                         cv2.putText(frame,key + " ball", (int(x-radius),int(y-radius)), cv2.FONT_HERSHEY_SIMPLEX, 0.6,colors[key],2)
             # show image
-            # cv2.imshow("Frame", frame)
+            #cv2.imshow("Frame", frame)
         key = cv2.waitKey(1) & 0xFF
         if key == ord("q"):
             break
@@ -409,8 +413,8 @@ def main():
         showImage = False, cameraDuration = 1, snapImage = False) #cameraDuration originally 3
 
 	# method 2: colour and circle-based detection method
-        circleScore, percentBlue = convex_contour_detect(camera, showImage = False, cameraDuration = 1)
-        print 'Circle score: %.2f' % circleScore
+        # circleScore, percentBlue = convex_contour_detect(camera, showImage = False, cameraDuration = 1)
+        # print 'Circle score: %.2f' % circleScore
         # second frame to compare if the robot is stuck
         (grabbed, currFrame) = camera.read()
         stuckScore = check_stuck(prevFrame, currFrame, stuckThreshold = 2000000)
@@ -431,15 +435,17 @@ def main():
             # checks whether to continue hunting
             print 'Deciding whether to continue hunting...'
             # circleScore, percentBlue = convex_contour_detect(camera, showImage = False, cameraDuration = 1)
-            # print 'Circle score: %.2f' % circleScore
-            # if (circleScore > numCircleThreshold) or (percentBlue > percentBlueThreshold):
-            #    print 'Continue hunting'
-            #    hunt_mode(robot, duration = 1, deathWheelDuration = 3)
+            circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, 
+        showImage = False, cameraDuration = 1, snapImage = False)
+            print 'Circle score: %.2f' % circleScore
+            if (circleScore > numCircleThreshold): # or (percentBlue > percentBlueThreshold):
+                print 'Continue hunting'
+                hunt_mode(robot, duration = 1, deathWheelDuration = 3)
         else:
             explore_mode_counter += 1
             if explore_mode_counter % 15 == 0: # maximum turns before exploration
                 randSpinDuration = np.random.uniform(low = 0.2, high = 1)
-                explore_mode(robot = robot, spinDuration = randSpinDuration, forwardDuration = 1.7, stopDuration = 0.25)
+                explore_mode(robot = robot, spinDuration = randSpinDuration, forwardDuration = 1, stopDuration = 0.25)
     camera.release()
 
 main()
@@ -450,10 +456,10 @@ def test_robot(run_inf = True):
     camera =  cv2.VideoCapture(0)
     if run_inf == True:
         while True: 
-            # circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, showImage = True, cameraDuration = 5)
-            circleScore, percentBlue = convex_contour_detect(camera, showImage = True, cameraDuration = 3)
+            circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, showImage = True, cameraDuration = 5)
+            # circleScore, percentBlue = convex_contour_detect(camera, showImage = True, cameraDuration = 3)
             print 'Circle score %.2f' % circleScore
-            print 'Percentage of screen blue: %.2f' % percentBlue
+            # print 'Percentage of screen blue: %.2f' % percentBlue
     else:
         circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, showImage = True, cameraDuration = 15, snapImage = False)
         print 'Circle score %.2f' % circleScore
