@@ -200,7 +200,12 @@ def temp_detect_blue_circle(camera, numCircleThreshold = 1, showImage = True, ca
     # TODO: check if these are in RGB or HSV
     lower = {'blue':(97, 100, 117), 'red':(166, 84, 141)}
     upper = {'blue':(117,255,255), 'red':(186,255,255)}
-    colors = {'blue':(255,0,0), 'red':(0,0,255)}
+
+    # detect blue only 
+    lower = {'blue':(97, 100, 117)}
+    upper = {'blue':(117,255,255)}
+
+    colors = {'blue':(255,0,0)} #, 'red':(0,0,255)}
     # camera =  cv2.VideoCapture(0)
     timeout = time.time() + cameraDuration
     # now = time.time()
@@ -421,6 +426,14 @@ def main():
             hunt_mode(robot, duration = 1, deathWheelDuration = 3)
             explore_mode_counter = 0
             time.sleep(0.5) # stop after hunting just for debugging
+
+            # checks whether to continue hunting
+            print 'Deciding whether to continue hunting...'
+            circleScore, percentBlue = convex_contour_detect(camera, showImage = False, cameraDuration = 1)
+            print 'Circle score: %.2f' % circleScore
+            if (circleScore > numCircleThreshold) or (percentBlue > percentBlueThreshold):
+                print 'Continue hunting'
+                hunt_mode(robot, duration = 1, deathWheelDuration = 3)
         else:
             explore_mode_counter += 1
             if explore_mode_counter % 15 == 0: # maximum turns before exploration
