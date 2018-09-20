@@ -29,7 +29,7 @@ def get_roi(frame, x_start = 150, x_end = 640-150, y_start = 0, y_end = 480):
     # x_end = 100
     # y_start = 0
     # y_end = 100
-    roi = frame[:, x_start:x_end]
+    roi = frame[y_start:300, x_start:x_end]
     return roi
 
 def test_motor_mode():
@@ -124,7 +124,10 @@ def convex_contour_detect(camera, showImage = False, cameraDuration = 0.5):
     '''
 
     timeout = time.time() + cameraDuration
-    lower_blue = np.array([97, 100, 117])
+    # lower_blue = np.array([97, 100, 117]) # original lower_blue 
+    # lower_blue = np.array([49, 56, 136]) # allow for darker blue
+    # lower_blue = np.array([30, 35, 84])
+    lower_blue = np.array([22, 25, 61])
     upper_blue = np.array([117,255,255])
     frameCount = 0 # count the number of frames during camera on (used for scaling)
     numCircle = 0
@@ -154,7 +157,7 @@ def convex_contour_detect(camera, showImage = False, cameraDuration = 0.5):
         # mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, kernel)
         # cv2.imshow('mask', mask)
         # _, contours, hierarchy = cv2.findContours(edge_detected_image, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
-        contours, hierarchy = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+        contours, hierarchy = cv2.findContours(mask.copy(), cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
         contour_list = []
         for contour in contours:
             approx = cv2.approxPolyDP(contour,0.01*cv2.arcLength(contour,True),True)
@@ -393,14 +396,14 @@ def main():
         # first frame to see if the robot is stuck
         (grabbed, prevFrame) = camera.read()
 	print 'Start explore mode'
-        explore_mode(robot = robot, spinDuration = 0.2, forwardDuration = 0, stopDuration = 0.25)
+        explore_mode(robot = robot, spinDuration = 0.1, forwardDuration = 0, stopDuration = 0)
         print 'Looking for circles...'
         # take a photo to check for stucking
         # method 1: only colour-based detection method
         # circleScore = temp_detect_blue_circle(camera = camera, numCircleThreshold = 10, 
-        # showImage = True, cameraDuration = 3, snapImage = False)
+        # showImage = True, cameraDuration = 0.5, snapImage = False) #cameraDuration originally 3
 	# method 2: colour and circle-based detection method
-        circleScore, percentBlue = convex_contour_detect(camera, showImage = False, cameraDuration = 3)
+        circleScore, percentBlue = convex_contour_detect(camera, showImage = False, cameraDuration = 1)
         print 'Circle score: %.2f' % circleScore
         # second frame to compare if the robot is stuck
         (grabbed, currFrame) = camera.read()
@@ -411,18 +414,18 @@ def main():
 
        # check if the robot detected blue balloon(s)
         # numCircleThreshold = 0.5 # this is for blue-detection 
-        numCircleThreshold = 1 # this is for circle-contour detection / glare
-        percentBlueThreshold = 0.20 # percentage of blue on screen to charge
-        if (circleScore > numCircleThreshold) or percentBlue > percentBlueThreshold:
+        numCircleThreshold = 0 # this is for circle-contour detection / glare
+        percentBlueThreshold = 0.05 # percentage of blue on screen to charge
+        if (circleScore > numCircleThreshold) or (percentBlue > percentBlueThreshold):
             print 'Hunt!'
             hunt_mode(robot, duration = 1, deathWheelDuration = 3)
             explore_mode_counter = 0
-            time.sleep(3) # stop after hunting just for debugging
+            time.sleep(0.5) # stop after hunting just for debugging
         else:
             explore_mode_counter += 1
-            if explore_mode_counter % 10 == 0: # maximum turns before exploration
+            if explore_mode_counter % 15 == 0: # maximum turns before exploration
                 randSpinDuration = np.random.uniform(low = 0.2, high = 1)
-                explore_mode(robot = robot, spinDuration = randSpinDuration, forwardDuration = 2, stopDuration = 0.25)
+                explore_mode(robot = robot, spinDuration = randSpinDuration, forwardDuration = 1.7, stopDuration = 0.25)
     camera.release()
 
 # main()
